@@ -9,28 +9,31 @@ http://xbeams.chem.yale.edu/~batista/v572/ColbertMiller.pdf
 import numpy as np, math
 
 def grid(domain=(-5, 5), divs=10, **kw):
-    '''Calculates the grid'''
-    rmin=domain[0]; rmax=domain[1];
-    inc=(rmax-rmin)/(divs-1)
+    '''Calculates a 1D grid'''
 
-    return [rmin+i*inc for i in range(divs)]
+    return np.linspace(*domain, divs)
 
-def kinetic_energy(grid=None, **kw):
-    '''Calculates the KE as reported by CM'''
-    dx=grid[1]-grid[0]
+def kinetic_energy(grid=None, m=1, hb=1, **kw):
+    '''Computes the kinetic energy for the grid'''
+
+    dx=grid[1]-grid[0] # recomputed here simply to decouple the calling from dvr_grid
     divs=len(grid)
     ke=np.empty((divs, divs))
 
-    hb=kw['hb'] if 'hb' in kw else 1
-    m=kw['mass'] if 'mass' in kw else 1
-
     coeff=(hb**2)/(2*m*(dx**2))
+    # compute the band values for the first row
+    b_val_0 = coeff*(math.pi**2)/3
+    col_rng = np.arange(1, divs+1) # the column indices -- also what will be used for computing the off diagonal bands
+    row_rng = np.arange(0, divs) # the row indices -- computed once and sliced
+    b_vals = coeff * ((-1)**col_rng) * 2 / (col_rng**2)
 
     for i in range(divs):
-        for j in range(divs):
-            if i==j:
-                ke[i, j]=(-1**(i-j))*coeff*(math.pi**2)/3
-            else:
-                ke[i, j]=(-1**(i-j))*coeff*(2)/((i-j)**2)
+        if i == 0:
+            np.fill_diagonal(ke, b_val_0)
+        else:
+            col_inds = col_rng[i-1:-1]#+(i-1)
+            row_inds = row_rng[:-i]
+            ke[row_inds, col_inds] = b_vals[i-1]
+            ke[col_inds, row_inds] = b_vals[i-1]
 
     return ke

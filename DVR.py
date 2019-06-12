@@ -23,7 +23,6 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
     def dvr_file(self, dvr):
         '''Locates the DVR file for dvr'''
 
-        dvr_file=dvr
         if os.path.exists(dvr):
             dvr_file=dvr
         else:
@@ -35,34 +34,68 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
         return dvr_file
 
     @classmethod
+    def _load_env(cls, file, env):
+        '''Fills in necessary parameters in an env from a module
+
+        :param env:
+        :type env:
+        :return:
+        :rtype:
+        '''
+
+        cls.loaded_DVRs[file]=env
+        for k in ('grid', 'kinetic_energy', 'potential_energy', 'hamiltonian', 'wavefunctions'):
+            if not 'grid' in env:
+                raise DVRException("{}.{}: DVR class '{}' didn't export property '{}' (in file {})".format(
+                    cls.__name__,
+                    'load_dvr',
+                    env['class'],
+                    k,
+                    env['file']
+                ))
+
+        return env
+
+    @classmethod
     def load_dvr(self, dvr):
         '''Loads a DVR from file into the DVR class'''
 
         dvr_file=self.dvr_file(dvr)
         if not dvr_file in self.loaded_DVRs:
             #defaults and parameters passed as global
+            dvr_class = os.path.splitext(os.path.basename(dvr_file))[0]
             _load_env={
                 'DVR':self,
+                'class':dvr_class,
+                'file':dvr_file,
                 'potential_energy':self._potential_energy,
                 'hamiltonian':self._hamiltonian,
                 'wavefunctions':self._wavefunctions
                 }
-            try: #for python2 compatibility
-                handle=open(dvr_file)
-                exec(handle.read(), _load_env, _load_env) #load DVR code
-                DVR.loaded_DVRs[dvr_file]=_load_env;
-            finally: # want to preserve error handling but still close the file
-                try:
-                    handle.close()
-                except:
-                    pass
 
-        return DVR.loaded_DVRs[dvr_file]
+            import sys
+
+            dvr_dir = os.path.dirname(dvr_file)
+            sys.path.insert(0, os.path.dirname(dvr_dir))
+            sys.path.insert(0, dvr_dir)
+            try:
+                exec("from .Classes.{} import *".format(dvr_class), globals(), _load_env)
+            except ImportError:
+                exec("from .Classes.{} import *".format(dvr_class), globals(), _load_env)
+            finally: # want to preserve error handling but still close the file
+                sys.path.pop(0)
+
+            load = self._load_env(dvr_file, _load_env)
+
+        else:
+
+            load = self.loaded_DVRs[dvr_file]
+
+        return load
 
     def _dvr_prop(self, prop_name):
         '''Gets a DVR property'''
 
-        prop=None;
         if prop_name in self.params:
             prop=self.params[prop_name]
         elif prop_name in self._dvr:
@@ -100,22 +133,22 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
 
         grid=self.grid()
         self.params['grid']=grid
-        if self.params['return']=='grid':
+        if self.params['result']=='grid':
             return grid
 
         pe=self.potential_energy()
         self.params['potential_energy']=pe
-        if self.params['return']=='potential_energy':
+        if self.params['result']=='potential_energy':
             return pe
 
         ke=self.kinetic_energy()
         self.params['kinetic_energy']=ke
-        if self.params['return']=='kinetic_energy':
+        if self.params['result']=='kinetic_energy':
             return ke
 
         h=self.hamiltonian()
         self.params['hamiltonian']=h
-        if self.params['return']=='hamiltonian':
+        if self.params['result']=='hamiltonian':
             return ke
 
         wf=self.wavefunctions()
@@ -125,7 +158,7 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
         ''' Runs the DVR. Resets state after the run '''
 
         par=self.params.copy()
-        self.params['return']='wavefunctions'
+        self.params['result']='wavefunctions'
         self.params.update(runpars)
         res=self._run()
         self.parms=par
@@ -183,8 +216,7 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
         '''A default wavefunction implementation for reuse'''
         import numpy as np
 
-        return np.linalg.eig(pars['hamiltonian'])
-
+        return np.linalg.eigh(pars['hamiltonian'])
 
 class DVRException(Exception):
     '''An Exception in a DVR '''
