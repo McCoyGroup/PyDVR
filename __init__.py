@@ -1,6 +1,7 @@
-'''This is a stub of a package for handling DVRs in python
-
+'''
+A package for doing generalized DVR in python.
+Provides and extensible DVR framework with an easy-to-write structure.
 '''
 
-__all__= ["DVR"]
+__all__= [ "DVR" ]
 from .DVR import *
