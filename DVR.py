@@ -136,6 +136,8 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
         return self._dvr_prop('wavefunctions')
 
     def _run(self):
+        from Psience.Wavefun import Wavefunctions
+        from .Wavefunctions import DVRWavefunction
 
         def get_res():
             return self.Results(parent = self, **self.params)
@@ -160,7 +162,7 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
             return get_res()
 
         wf = self.wavefunctions()
-        self.params['wavefunctions'] = wf
+        self.params['wavefunctions'] = Wavefunctions(*wf, wavefunction_class=DVRWavefunction)
         if self.params['result'] == 'wavefunctions':
             return get_res()
 
