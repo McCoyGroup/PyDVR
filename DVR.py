@@ -137,7 +137,7 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
 
     def _run(self):
         from Psience.Wavefun import Wavefunctions
-        from .Wavefunctions import DVRWavefunction
+        from .Wavefunctions import DVRWavefunctions
 
         def get_res():
             return self.Results(parent = self, **self.params)
@@ -162,14 +162,14 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
             return get_res()
 
         wf = self.wavefunctions()
-        self.params['wavefunctions'] = Wavefunctions(*wf, wavefunction_class=DVRWavefunction)
+        self.params['wavefunctions'] = DVRWavefunctions(*wf)
         if self.params['result'] == 'wavefunctions':
             return get_res()
 
         return get_res()
 
     def run(self, **runpars):
-        ''' Runs the DVR. Resets state after the run '''
+        ''' Runs the DVR. Resets state after the run'''
 
         par = self.params.copy()
         try:
@@ -210,7 +210,6 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
         elif 'potential_grid' in pars:
             # TODO: extend to include ND, scipy.griddata
             import scipy.interpolate as interp, scipy.sparse as sp
-
 
             dim = len(pars['grid'].shape)
             if dim > 1:
