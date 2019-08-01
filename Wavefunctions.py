@@ -56,8 +56,35 @@ class DVRWavefunction(Wavefunction):
 
         return np.power(self.data, 2)
 
+
 class DVRWavefunctions(Wavefunctions):
     # most evaluations are most efficient done in batch for DVR wavefunctions so we focus on the batch object
+
+    def __init__(self, energies = None, wavefunctions = None,
+                 wavefunction_class = None,
+                 rephase = True,
+                 **opts
+                 ):
+        import numpy as np
+
+        if rephase:
+            phase_gs = np.sign(wavefunctions[:, 0])
+            wavefunctions = wavefunctions*phase_gs[:, np.newaxis]
+        super().__init__(wavefunctions=wavefunctions, energies=energies, wavefunction_class=DVRWavefunction, **opts)
+
+    def __getitem__(self, item):
+        """Returns a single Wavefunction object"""
+        # iter comes for free with this
+        if isinstance(item, slice):
+            return type(self)(
+                energies = self.energies[item],
+                wavefunctions = self.wavefunctions[:, item],
+                wavefunction_class = self.wavefunction_class,
+                **self.opts
+            )
+        else:
+            return self.wavefunction_class(self.energies[item], self.wavefunctions[:, item], parent = self, **self.opts)
+
     def plot(self, figure = None, graphics_class = None, plot_style = None, **opts):
         import numpy as np
 
@@ -90,7 +117,7 @@ class DVRWavefunctions(Wavefunctions):
         wfs = op(self.wavefunctions)
         if not isinstance(other, np.ndarray):
             other = other.wavefunctions
-        return np.dot(wfs, other)
+        return np.dot(other.T, wfs)
 
     def probability_density(self):
         """Computes the probability density of the set of wavefunctions

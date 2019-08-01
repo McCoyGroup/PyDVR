@@ -51,23 +51,23 @@ def kinetic_energy(grid=None, m=1, hb=1, **kw):
     return ke
 
 
-def potential_energy(grid=None, potential_function=None, potential_values=None, **kw):
-
-    if potential_values is not None:
-        return sp.diags([potential_values], [0])
-    else:
-        from functools import reduce
-        from operator import mul
-
-        npts = reduce(mul, grid.shape[:-1], 1)
-        gps = np.reshape(grid, (npts, grid.shape[-1]))
-        pots = potential_function(gps)
-        return sp.diags([pots], [0])
+# def potential_energy(grid=None, potential_function=None, potential_values=None, **kw):
+#
+#     if potential_values is not None:
+#         return sp.diags([potential_values], [0])
+#     else:
+#         from functools import reduce
+#         from operator import mul
+#
+#         npts = reduce(mul, grid.shape[:-1], 1)
+#         gps = np.reshape(grid, (npts, grid.shape[-1]))
+#         pots = potential_function(gps)
+#         return sp.diags([pots], [0])
 
 
 def wavefunctions(hamiltonian=None, num_wfns=10, **kw):
     """Computes the wavefunctions using sparse methods"""
     import scipy.sparse.linalg as la
-    return la.eigsh(hamiltonian, num_wfns, which = 'SM')
+    return la.eigsh(hamiltonian, num_wfns, which='SA')
 
 
