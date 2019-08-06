@@ -91,7 +91,7 @@ class DVRWavefunctions(Wavefunctions):
         grid = self.opts['grid']
 
         dim = len(grid.shape)
-        if dim > 1 and grid.shape[-1] == dim-1: # check whether we have a mesh of points that we need to reshape
+        if dim > 1 and grid.shape[-1] == dim-1:  # check whether we have a mesh of points that we need to reshape
             unroll = np.roll(np.arange(len(grid.shape)), 1)
             grid = grid.transpose(unroll)
 

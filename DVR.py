@@ -1,5 +1,6 @@
 import os
 
+
 class DVR:
 
     '''This is a manager class for working with DVRs
@@ -108,31 +109,31 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
         return prop
 
     def domain(self):
-        '''Computes the domain for the DVR'''
+        """Computes the domain for the DVR"""
         return self._dvr_prop('domain')
 
     def divs(self):
-        '''Computes the divisions for the DVR'''
+        """Computes the divisions for the DVR"""
         return self._dvr_prop('divs')
 
     def grid(self):
-        '''Computes the grid for the DVR'''
+        """Computes the grid for the DVR"""
         return self._dvr_prop('grid')
 
     def kinetic_energy(self):
-        '''Computes the kinetic_energy for the DVR'''
+        """Computes the kinetic_energy for the DVR"""
         return self._dvr_prop('kinetic_energy')
 
     def potential_energy(self):
-        '''Computes the potential_energy for the DVR'''
+        """Computes the potential_energy for the DVR"""
         return self._dvr_prop('potential_energy')
 
     def hamiltonian(self):
-        '''Computes the hamiltonian for the DVR'''
+        """Computes the hamiltonian for the DVR"""
         return self._dvr_prop('hamiltonian')
 
     def wavefunctions(self):
-        '''Computes the wavefunctions for the DVR'''
+        """Computes the wavefunctions for the DVR"""
         return self._dvr_prop('wavefunctions')
 
     def _run(self):
@@ -140,7 +141,8 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
         from .Wavefunctions import DVRWavefunctions
 
         def get_res():
-            return self.Results(parent = self, **self.params)
+            res_class = self.params['results_class'] if 'results_class' in self.params else self.Results
+            return res_class(parent=self, **self.params)
         grid = self.grid()
         self.params['grid'] = grid
         if self.params['result'] == 'grid':
@@ -165,11 +167,10 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
         self.params['wavefunctions'] = DVRWavefunctions(*wf, grid=grid)
         if self.params['result'] == 'wavefunctions':
             return get_res()
-
         return get_res()
 
     def run(self, **runpars):
-        ''' Runs the DVR. Resets state after the run'''
+        """ Runs the DVR. Resets state after the run"""
 
         par = self.params.copy()
         try:
@@ -184,7 +185,7 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
 
     @staticmethod
     def _potential_energy(**pars):
-        ''' A default 1D potential implementation for reuse'''
+        """ A default ND potential implementation for reuse"""
         import numpy as np
 
         if 'potential_function' in pars:
@@ -261,12 +262,12 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
 
     @staticmethod
     def _hamiltonian(**pars):
-        '''A default hamiltonian implementation for reuse'''
+        """A default hamiltonian implementation for reuse"""
         return pars['kinetic_energy']+pars['potential_energy']
 
     @staticmethod
     def _wavefunctions(**pars):
-        '''A default wavefunction implementation for reuse'''
+        """A default wavefunction implementation for reuse"""
         import numpy as np
 
         return np.linalg.eigh(pars['hamiltonian'])
@@ -276,12 +277,12 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
         A subclass that can wrap all of the DVR run parameters and results into a clean interface for reuse and extension
         """
         def __init__(self,
-                     grid = None,
-                     kinetic_energy = None,
-                     potential_energy = None,
-                     hamiltonian = None,
-                     wavefunctions = None,
-                     parent = None,
+                     grid=None,
+                     kinetic_energy=None,
+                     potential_energy=None,
+                     hamiltonian=None,
+                     wavefunctions=None,
+                     parent=None,
                      **opts
                      ):
 
@@ -300,7 +301,7 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
                 dim -= 1
             return dim
 
-        def plot_potential(self, plot_class = None, **opts):
+        def plot_potential(self, plot_class=None, plot_units=None, **opts):
             from McUtils.Plots import Plot, Plot3D
             import numpy as np
 
@@ -321,19 +322,54 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
                         'plot',
                         dim
                     ))
-
-            pot = self.potential_energy.diagonal()
+            if plot_units is 'wavenumbers':
+                pot = self.potential_energy.diagonal()
+                pot = (pot - min(pot))*219474.6
+                pot[pot > 15000] = 15000
+            else:
+                pot = self.potential_energy.diagonal()
 
             return plot_class(*mesh, pot.reshape(mesh[0].shape), **opts)
 
-            #
-            #
-            #
-            # # Plot3D(mesh[0], mesh[1], np.diag(res["potential_energy"].todense()).reshape(mesh[0].shape) ).show()
-            # for i in range(10):
-            #     ContourPlot(mesh[0], mesh[1], res["wavefunctions"][1][:, i].reshape(mesh[0].shape)).show()
-            # # self.assertIsInstance(res[0], np.ndarray)
+
+class ResultsInterpreter(DVR.Results):
+    """A subclass of results to do some quick analysis..."""
+    def __init__(self, **results):
+        super().__init__(**results)
+        MEHSH = self.grid
+        unrolly_polly_OLLY = np.roll(np.arange(len(MEHSH.shape)), 1)
+        mesh = MEHSH.transpose(unrolly_polly_OLLY)
+        self.x = mesh[0].flatten()
+        self.y = mesh[1].flatten()
+        poo = self.potential_energy.diagonal()
+        poo = poo.reshape(mesh[0].shape).T
+        self.potential_energy_vector = poo.flatten()
+
+    def print_energies(self):
+        poo = self.potential_energy_vector
+        e = self.wavefunctions.energies
+        e = (e - min(poo))*219474.6
+        return e
+
+    def plot_pot_cuts(self, coordinate, num_to_plot):
+        vals = np.column_stack((self.x, self.y, self.potential_energy_vector))
+        if coordinate == 'x':
+            xvals = np.unique(self.x)
+            slices = [vals[self.x == xv] for xv in xvals]
+            for x in range(*num_to_plot):  # not correct implementation.. plots never stop looping
+                for slip in slices:
+                    plt.plot(slip[:, 1], slip[:, 2], 'o')
+                    plt.show()
+        elif coordinate == "y":
+            yvals = np.unique(self.y)
+            slyces = [vals[self.y == yv] for yv in yvals]
+            for y in range(*num_to_plot):  # not correct implementation.. plots never stop looping
+                for slyp in slyces:
+                    plt.plot(slyp[:, 1], slyp[:, 2], 'o')
+                    plt.show()
+        else:
+            print("I do not know that coordinate.")
 
 class DVRException(Exception):
-    '''An Exception in a DVR '''
+    """An Exception in a DVR """
     pass
