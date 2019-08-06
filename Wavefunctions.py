@@ -1,18 +1,18 @@
 """
 Provides a DVRWavefunction class that inherits from the base Psience wavefunction
 """
-
 from Psience.Wavefun import Wavefunction, Wavefunctions
 
+
 class DVRWavefunction(Wavefunction):
-    def plot(self, figure = None, grid = None, **opts):
+    def plot(self, figure=None, grid=None, **opts):
         import numpy as np
 
         if grid is None:
             grid = self.opts['grid']
 
         dim = len(grid.shape)
-        if dim > 1 and grid.shape[-1] == dim-1: # check whether we have a mesh of points that we need to reshape
+        if dim > 1 and grid.shape[-1] == dim-1:  # check whether we have a mesh of points that we need to reshape
             unroll = np.roll(np.arange(len(grid.shape)), 1)
             grid = grid.transpose(unroll)
 
@@ -60,9 +60,9 @@ class DVRWavefunction(Wavefunction):
 class DVRWavefunctions(Wavefunctions):
     # most evaluations are most efficient done in batch for DVR wavefunctions so we focus on the batch object
 
-    def __init__(self, energies = None, wavefunctions = None,
-                 wavefunction_class = None,
-                 rephase = True,
+    def __init__(self, energies=None, wavefunctions=None,
+                 wavefunction_class=None,
+                 rephase=True,
                  **opts
                  ):
         import numpy as np
@@ -77,16 +77,17 @@ class DVRWavefunctions(Wavefunctions):
         # iter comes for free with this
         if isinstance(item, slice):
             return type(self)(
-                energies = self.energies[item],
-                wavefunctions = self.wavefunctions[:, item],
-                wavefunction_class = self.wavefunction_class,
+                energies=self.energies[item],
+                wavefunctions=self.wavefunctions[:, item],
+                wavefunction_class=self.wavefunction_class,
                 **self.opts
             )
         else:
-            return self.wavefunction_class(self.energies[item], self.wavefunctions[:, item], parent = self, **self.opts)
+            return self.wavefunction_class(self.energies[item], self.wavefunctions[:, item], parent=self, **self.opts)
 
-    def plot(self, figure = None, graphics_class = None, plot_style = None, **opts):
+    def plot(self, figure=None, graphics_class=None, plot_class=None, plot_style=None, **opts):
         import numpy as np
+        from McUtils.Plots import Plot, Plot3D
 
         grid = self.opts['grid']
 
@@ -94,6 +95,19 @@ class DVRWavefunctions(Wavefunctions):
         if dim > 1 and grid.shape[-1] == dim-1:  # check whether we have a mesh of points that we need to reshape
             unroll = np.roll(np.arange(len(grid.shape)), 1)
             grid = grid.transpose(unroll)
+
+        # if plot_class is None:
+        #     if dim == 1:
+        #         plot_class = Plot
+        #     elif dim == 2:
+        #         plot_class = Plot3D
+        #     else:
+        #         print("I don't know how to plot that")
+        #         # raise DVRException("{}.{}: don't know how to plot {} dimensional potential".format(
+        #         #     type(self).__name__,
+        #         #     'plot',
+        #         #     dim
+        #         # ))
 
         super().plot(
             figure=figure,

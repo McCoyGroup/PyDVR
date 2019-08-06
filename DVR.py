@@ -1,13 +1,14 @@
 import os
+import numpy as np
 
 
 class DVR:
 
-    '''This is a manager class for working with DVRs
+    """This is a manager class for working with DVRs
 
 It uses files from which it loads the spec data and methods
 Currently all defaults are for 1D but the ND extension shouldn't be bad
-'''
+"""
 
     loaded_DVRs = {}  # for storing DVRs loaded from file
     dvr_dir = os.path.join(os.path.dirname(__file__), "Classes")
@@ -22,7 +23,7 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
 
     @classmethod
     def dvr_file(self, dvr):
-        '''Locates the DVR file for dvr'''
+        """Locates the DVR file for dvr"""
 
         if os.path.exists(dvr):
             dvr_file = dvr
@@ -36,13 +37,13 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
 
     @classmethod
     def _load_env(cls, file, env):
-        '''Fills in necessary parameters in an env from a module
+        """Fills in necessary parameters in an env from a module
 
         :param env:
         :type env:
         :return:
         :rtype:
-        '''
+        """
 
         cls.loaded_DVRs[file] = env
         for k in ('grid', 'kinetic_energy', 'potential_energy', 'hamiltonian', 'wavefunctions'):
@@ -59,7 +60,7 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
 
     @classmethod
     def load_dvr(self, dvr):
-        '''Loads a DVR from file into the DVR class'''
+        """Loads a DVR from file into the DVR class"""
 
         dvr_file = self.dvr_file(dvr)
         if dvr_file not in self.loaded_DVRs:
@@ -95,7 +96,7 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
         return load
 
     def _dvr_prop(self, prop_name):
-        '''Gets a DVR property'''
+        """Gets a DVR property"""
 
         if prop_name in self.params:
             prop = self.params[prop_name]
@@ -186,7 +187,6 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
     @staticmethod
     def _potential_energy(**pars):
         """ A default ND potential implementation for reuse"""
-        import numpy as np
 
         if 'potential_function' in pars:
             # explicit potential function passed; map over coords
@@ -268,7 +268,6 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
     @staticmethod
     def _wavefunctions(**pars):
         """A default wavefunction implementation for reuse"""
-        import numpy as np
 
         return np.linalg.eigh(pars['hamiltonian'])
 
@@ -301,7 +300,7 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
                 dim -= 1
             return dim
 
-        def plot_potential(self, plot_class=None, plot_units=None, **opts):
+        def plot_potential(self, plot_class=None, plot_units=None, energy_threshold=None, **opts):
             from McUtils.Plots import Plot, Plot3D
             import numpy as np
 
@@ -325,9 +324,12 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
             if plot_units is 'wavenumbers':
                 pot = self.potential_energy.diagonal()
                 pot = (pot - min(pot))*219474.6
-                pot[pot > 15000] = 15000
             else:
                 pot = self.potential_energy.diagonal()
+            if energy_threshold:
+                pot[pot > energy_threshold] = energy_threshold
+            else:
+                pot = pot
 
             return plot_class(*mesh, pot.reshape(mesh[0].shape), **opts)
 
@@ -336,39 +338,69 @@ class ResultsInterpreter(DVR.Results):
     """A subclass of results to do some quick analysis..."""
     def __init__(self, **results):
         super().__init__(**results)
-        MEHSH = self.grid
-        unrolly_polly_OLLY = np.roll(np.arange(len(MEHSH.shape)), 1)
-        mesh = MEHSH.transpose(unrolly_polly_OLLY)
-        self.x = mesh[0].flatten()
-        self.y = mesh[1].flatten()
-        poo = self.potential_energy.diagonal()
-        poo = poo.reshape(mesh[0].shape).T
-        self.potential_energy_vector = poo.flatten()
+        if self.grid.ndim == 3:
+            MEHSH = self.grid
+            unrolly_polly_OLLY = np.roll(np.arange(len(MEHSH.shape)), 1)
+            mesh = MEHSH.transpose(unrolly_polly_OLLY)
+            self.x = mesh[0].flatten()
+            self.y = mesh[1].flatten()
+            poo = self.potential_energy.diagonal()
+            poo = poo.reshape(mesh[0].shape)
+            self.potential_energy_vector = poo.flatten()
+        else:
+            poo = self.potential_energy.diagonal()
+            self.potential_energy_vector = poo
+            self.x = self.grid[:, 0]
+            self.y = self.grid[:, 1]
 
-    def print_energies(self):
+    def pull_energies(self, **opts):
+        """returns vector of ten lowest energies, shifted to the potential's minimum and converted to wavenumbers."""
         poo = self.potential_energy_vector
         e = self.wavefunctions.energies
         e = (e - min(poo))*219474.6
         return e
 
-    def plot_pot_cuts(self, coordinate, num_to_plot):
+    def potential_cuts(self, coordinate=None, num_to_plot=None, save_vals=False, **opts):
+        """creates cuts through the potential, along specified coordinate to either plot or save (as .npy file)
+            for troubleshooting/checking inter/extrapolation etc
+
+            :param coordinate (str) either x or y, if x then returns the (x,energy) pair for y-values in num_to_plot
+            :param num_to_plot (tuple) of indices to plot/save
+            :param save_vals (boolean) set to True to save cuts as .npy files (default False)"""
+        import matplotlib.pyplot as plt
         vals = np.column_stack((self.x, self.y, self.potential_energy_vector))
         if coordinate == 'x':
             xvals = np.unique(self.x)
             slices = [vals[self.x == xv] for xv in xvals]
-            for x in range(*num_to_plot):  # not correct implementation.. plots never stop looping
-                for slip in slices:
-                    plt.plot(slip[:, 1], slip[:, 2], 'o')
-                    plt.show()
+            for x in range(*num_to_plot):
+                if save_vals:
+                    np.save('xcoord_yval_%.4f.npy' % slices[x][0, 0],
+                            np.column_stack((slices[x][:, 1], slices[x][:, 2])))
+                plt.plot(slices[x][:, 1], slices[x][:, 2], 'o')
+                plt.show()
         elif coordinate == "y":
             yvals = np.unique(self.y)
             slyces = [vals[self.y == yv] for yv in yvals]
-            for y in range(*num_to_plot):  # not correct implementation.. plots never stop looping
-                for slyp in slyces:
-                    plt.plot(slyp[:, 1], slyp[:, 2], 'o')
-                    plt.show()
+            for y in range(*num_to_plot):
+                if save_vals:
+                    np.save('ycoord_xval_%.4f.npy' % slyces[y][0, 1],
+                            np.column_stack((slyces[y][:, 0], slyces[y][:, 2])))
+                plt.plot(slyces[y][:, 0], slyces[y][:, 2], 'o')
+                plt.show()
         else:
             print("I do not know that coordinate.")
+
+    def wfn_contours(self):
+        """Current messy fix for plotting 2D dimensional wavefunctions as contour plots.
+                    wf.plot(plot_class=ContourPlot).show() doesnt work but probably should???"""
+        import matplotlib.pyplot as plt
+        for wf in self.wavefunctions:
+            wfn = wf.data
+            fig, ax = plt.subplots()
+            tcc = ax.tricontourf(self.x, self.y, wfn)
+            fig.colorbar(tcc)
+            plt.show()
+
 
 class DVRException(Exception):
     """An Exception in a DVR """

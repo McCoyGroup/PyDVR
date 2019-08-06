@@ -1,4 +1,4 @@
-'''ND Colbert and Miller DVR'''
+"""ND Colbert and Miller DVR"""
 
 import numpy as np
 import scipy.sparse as sp
@@ -6,19 +6,17 @@ import ColbertMiller1D as cm1D
 
 
 def grid(domain=((-5, 5), (-5, 5)), divs=(10, 10), **kw):
-    '''Creates a ND grid from 1D ones'''
+    """Creates a ND grid from 1D ones"""
 
     mesh = np.array(np.meshgrid(*map(cm1D.grid, domain, divs), indexing='ij'))
 
     rolly_polly_OLLY = np.roll(np.arange(len(mesh.shape)), -1)
     MEHSH = mesh.transpose(rolly_polly_OLLY)
-    # for i in range(mesh.shape[0]):
-    #     mesh = mesh.swapaxes(i, i+1)
     return MEHSH
 
 
 def kinetic_energy(grid=None, m=1, hb=1, **kw):
-    '''Computes n-dimensional kinetic energy for the grid'''
+    """Computes n-dimensional kinetic energy for the grid"""
     from functools import reduce
 
     ndims = grid.shape[-1]
@@ -39,7 +37,7 @@ def kinetic_energy(grid=None, m=1, hb=1, **kw):
     kes = map(sp.csr_matrix, kes)
 
     def _kron_sum(a, b):
-        '''Computes a Kronecker sum to build our Kronecker-Delta tensor product expression'''
+        """Computes a Kronecker sum to build our Kronecker-Delta tensor product expression"""
         n_1 = a.shape[0]
         n_2 = b.shape[0]
         ident_1 = sp.identity(n_1)
