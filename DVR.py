@@ -360,15 +360,42 @@ class ResultsInterpreter(DVR.Results):
         e = (e - min(poo))*219474.6
         return e
 
-    def potential_cuts(self, coordinate=None, num_to_plot=None, save_vals=False, **opts):
-        """creates cuts through the potential, along specified coordinate to either plot or save (as .npy file)
-            for troubleshooting/checking inter/extrapolation etc
+    def linear_dipole(self, plot=False, **opts):
+        """calculates the linear "dipole" actually delta r (ie, y - y(eq))."""
+        ref_idx = np.argmin(self.potential_energy_vector)
+        deltar = self.y - self.y[ref_idx]
+        if plot:
+            import matplotlib.pyplot as plt
+            fig, ax = plt.subplots()
+            tcc = ax.tricontourf(self.x, self.y, deltar)
+            ax.set_title('Delta Roh')
+            fig.colorbar(tcc)
+            plt.show()
+        else:
+            pass
+        return deltar
 
+    def potential_cuts(self, coordinate=None, num_to_plot=None, plot_units=None, energy_threshold=None, save_vals=False, **opts):
+        """creates cuts through the potential, along specified coordinate to either plot or save (as .npy file)
+            for troubleshooting/checking inter/extrapolation etc.
             :param coordinate (str) either x or y, if x then returns the (x,energy) pair for y-values in num_to_plot
             :param num_to_plot (tuple) of indices to plot/save
-            :param save_vals (boolean) set to True to save cuts as .npy files (default False)"""
+            :param save_vals (boolean) set to True to save cuts as .npy files (default False)
+            :param plot_units (str) currently can only handle "wavenumbers" default is hartrees
+            :param energy_threshold (int) takes any points above threshold and sets to threshold value for
+                    cleaner plotting"""
         import matplotlib.pyplot as plt
-        vals = np.column_stack((self.x, self.y, self.potential_energy_vector))
+        if plot_units is 'wavenumbers':
+            pot = self.potential_energy_vector
+            pot = (pot - min(pot)) * 219474.6
+        else:
+            pot = self.potential_energy.diagonal()
+        if energy_threshold:
+            pot[pot > energy_threshold] = energy_threshold
+        else:
+            pot = pot
+        vals = np.column_stack((self.x, self.y, pot))
+
         if coordinate == 'x':
             xvals = np.unique(self.x)
             slices = [vals[self.x == xv] for xv in xvals]
@@ -394,10 +421,11 @@ class ResultsInterpreter(DVR.Results):
         """Current messy fix for plotting 2D dimensional wavefunctions as contour plots.
                     wf.plot(plot_class=ContourPlot).show() doesnt work but probably should???"""
         import matplotlib.pyplot as plt
-        for wf in self.wavefunctions:
+        for i, wf in enumerate(self.wavefunctions):
             wfn = wf.data
             fig, ax = plt.subplots()
             tcc = ax.tricontourf(self.x, self.y, wfn)
+            ax.set_title('Wavefunction %s' % str(i))
             fig.colorbar(tcc)
             plt.show()
 
