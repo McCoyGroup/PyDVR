@@ -266,10 +266,17 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
         return pars['kinetic_energy']+pars['potential_energy']
 
     @staticmethod
-    def _wavefunctions(**pars):
+    def _wavefunctions(num_wfns = None, **pars):
         """A default wavefunction implementation for reuse"""
 
-        return np.linalg.eigh(pars['hamiltonian'])
+        res = np.linalg.eigh(pars['hamiltonian'])
+        if num_wfns is not None:
+            res = (
+                res[0][:num_wfns],
+                res[1][:, :num_wfns]
+            )
+
+        return res
 
     class Results:
         """
@@ -305,9 +312,10 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
             import numpy as np
 
             # get the grid for plotting
-            MEHSH = self.grid
-            unrolly_polly_OLLY = np.roll(np.arange(len(MEHSH.shape)), 1)
-            mesh = MEHSH.transpose(unrolly_polly_OLLY)
+            if self.dimension >= 2:
+                MEHSH = self.grid
+                unrolly_polly_OLLY = np.roll(np.arange(len(MEHSH.shape)), 1)
+                mesh = MEHSH.transpose(unrolly_polly_OLLY)
 
             if plot_class is None:
                 dim = self.dimension

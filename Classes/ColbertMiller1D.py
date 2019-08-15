@@ -15,14 +15,14 @@ def grid(domain=(-5, 5), divs=10, **kw):
     return np.linspace(*domain, divs)
 
 
-def kinetic_energy(grid=None, m=1, hb=1, **kw):
+def kinetic_energy(grid=None, mass=1, hb=1, **kw):
     """Computes the kinetic energy for the grid"""
 
     dx = grid[1] - grid[0]  # recomputed here simply to decouple the calling from dvr_grid
     divs = len(grid)
     ke = np.empty((divs, divs))
 
-    coeff = (hb**2)/(2*m*(dx**2))
+    coeff = (hb**2)/(2*mass*(dx**2))
     # compute the band values for the first row
     b_val_0 = coeff*(np.pi**2)/3
     col_rng = np.arange(1, divs+1)  # the column indices -- also what will be used for computing the off diagonal bands
