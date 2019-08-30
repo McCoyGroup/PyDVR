@@ -201,7 +201,7 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
                     de = pars['De'] if 'De' in pars else 10
                     a = pars['alpha'] if 'alpha' in pars else 1
                     re = pars['re'] if 're' in pars else 0
-                    pf = lambda x, a=a, de=de, re=re: de*(1-np.exp((-a*(x-re)))**2)
+                    pf = lambda x, a=a, de=de, re=re: de*(1-np.exp((-a*(x-re))))**2
                 else:
                     raise DVRException("unknown potential "+pf)
 

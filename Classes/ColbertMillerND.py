@@ -15,15 +15,15 @@ def grid(domain=((-5, 5), (-5, 5)), divs=(10, 10), **kw):
     return MEHSH
 
 
-def kinetic_energy(grid=None, m=1, hb=1, **kw):
+def kinetic_energy(grid=None, mass=1, hb=1, **kw):
     """Computes n-dimensional kinetic energy for the grid"""
     from functools import reduce
 
     ndims = grid.shape[-1]
     try:
-        iter(m); ms = m
+        iter(mass); ms = mass
     except TypeError:
-        ms = [m]*ndims
+        ms = [mass]*ndims
 
     try:
         iter(hb); hbs = hb
@@ -32,8 +32,7 @@ def kinetic_energy(grid=None, m=1, hb=1, **kw):
 
     ndim = grid.shape[-1]
     grids = [grid[(0, )*i + (...,) + (0, ) * (ndim-i-1) +(i,)] for i in range(ndim)]
-    kes = [cm1D.kinetic_energy(g, m=m, hb=hb) for g, m, hb in zip(grids, ms, hbs)]
-
+    kes = [cm1D.kinetic_energy(g, mass=m, hb=hb) for g, m, hb in zip(grids, ms, hbs)]
     kes = map(sp.csr_matrix, kes)
 
     def _kron_sum(a, b):
