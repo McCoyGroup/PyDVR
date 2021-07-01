@@ -22,7 +22,7 @@ def grid(domain=None, divs=None, flavor='[-inf,inf]', **kw):
     :rtype:
     """
 
-    subgrids = [cm1D.grid(domain=dom, divs=div, flavor=flavor) for dom,div in zip(domain, divs)]
+    subgrids = [cm1D.get_grid(domain=dom, divs=div, flavor=flavor) for dom, div in zip(domain, divs)]
     mesh = np.array(np.meshgrid(*subgrids, indexing='ij'))
 
     rolly_polly_OLLY = np.roll(np.arange(len(mesh.shape)), -1)
@@ -70,7 +70,7 @@ def kinetic_energy(grid=None, mass=1, hb=1, g=None, g_deriv=None, flavor='[-inf,
         include_coupling = False
 
     kes = [
-        cm1D.kinetic_energy(subg, mass=m, hb=hb, flavor=flavor)
+        cm1D.get_kinetic_energy(subg, mass=m, hb=hb, flavor=flavor)
         for subg, m, hb in zip(grids, ms, hbs)
     ]
     kes = [sp.csr_matrix(mat) for mat in kes]
@@ -88,7 +88,8 @@ def kinetic_energy(grid=None, mass=1, hb=1, g=None, g_deriv=None, flavor='[-inf,
         flat_grid = np.reshape(grid, (-1, ndim))
         tot_shape = [len(gr) for gr in grids]  # we'll need this to multiply terms into the right indices
         ke = sp.csr_matrix((len(flat_grid), len(flat_grid)), dtype=kes[0].dtype)
-        for i in range(ndim):  # build out all of the coupling term products
+        for i in range(ndim):
+            # build out all of the coupling term products
             # evaluate g over the terms and average
              if not (
                         isinstance(g[i][i], (int, float, np.integer, np.floating))
@@ -127,6 +128,10 @@ def kinetic_energy(grid=None, mass=1, hb=1, g=None, g_deriv=None, flavor='[-inf,
                 )
 
                 ke += ke_mat
+
+                gd_vals = 1/4*g_deriv[i](flat_grid)
+                ke_contrib = sp.diags([gd_vals], [0])
+                ke += ke_contrib
 
         if include_coupling:
             momenta = [cm1D.real_momentum(subg, hb=hb, flavor=flavor) for subg in grids]

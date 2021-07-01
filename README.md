@@ -35,9 +35,9 @@ Notice that for every dimension added, ```divs``` will need another ```int``` va
 After making this call, the variable ```res``` is a subclass of the DVR that holds all the results in a way that is easy to access.
 Values currently held are: 
 ```python
-grid = res.grid
+grid = res.get_grid
 # nd array of grid points determined by domain and divs. 
-kinetic_energy = res.kinetic_energy
+kinetic_energy = res.get_kinetic_energy
 # nd array of the kinetic energy operator.
 potential_energy = res.potential_energy
 # nd array of the potential energy operator (full matrix).
