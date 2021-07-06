@@ -22,7 +22,7 @@ def grid(domain=None, divs=None, flavor='[-inf,inf]', **kw):
     :rtype:
     """
 
-    subgrids = [cm1D.get_grid(domain=dom, divs=div, flavor=flavor) for dom, div in zip(domain, divs)]
+    subgrids = [cm1D.grid(domain=dom, divs=div, flavor=flavor) for dom, div in zip(domain, divs)]
     mesh = np.array(np.meshgrid(*subgrids, indexing='ij'))
 
     rolly_polly_OLLY = np.roll(np.arange(len(mesh.shape)), -1)
@@ -64,13 +64,13 @@ def kinetic_energy(grid=None, mass=1, hb=1, g=None, g_deriv=None, flavor='[-inf,
             for i in range(ndim) for j in range(ndim)
         )
 
-        ms = [1/2]*len(ms)
+        ms = [1]*len(ms)
 
     else:
         include_coupling = False
 
     kes = [
-        cm1D.get_kinetic_energy(subg, mass=m, hb=hb, flavor=flavor)
+        cm1D.kinetic_energy(subg, mass=m, hb=hb, flavor=flavor)
         for subg, m, hb in zip(grids, ms, hbs)
     ]
     kes = [sp.csr_matrix(mat) for mat in kes]
