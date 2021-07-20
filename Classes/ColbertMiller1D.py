@@ -23,7 +23,7 @@ def grid_neginfinf(domain=None, divs=None, **kw):
     :rtype:
     """
 
-    return domain[0] + (domain[1] - domain[0]) * np.arange(1, divs)/(divs+1)
+    return np.linspace(*domain, divs)
 
 def kinetic_energy_neginfinf(grid=None, mass=1, hb=1, **kw):
     '''Computes the kinetic energy for the grid'''
@@ -98,7 +98,7 @@ def kinetic_energy_02pi(grid=None, mass=1, hb=1, **kw):
     for i in range(1, divs):
         col_inds = col_rng[i - 1:-1]  # +(i-1)
         row_inds = row_rng[:-i]
-        val = coeff*(-1)**(i) * np.cos(i * np.pi / divs) / (2 * np.sin(i * np.pi / divs)**2)
+        val = coeff*(-1)**i * (np.cos(i * np.pi / divs) / (2 * np.sin(i * np.pi / divs)**2))
         ke[row_inds, col_inds] = val
         ke[col_inds, row_inds] = val
 
@@ -127,8 +127,7 @@ def real_momentum_02pi(grid=None, hb=1, **kw):
         row_inds = row_rng[:-i]
         val = hb/2 * (-1)**(i) / np.sin(i * np.pi / divs)
         p[row_inds, col_inds] = val
-        p[col_inds, row_inds] = val
-
+        p[col_inds, row_inds] = -val
     return p
 
 

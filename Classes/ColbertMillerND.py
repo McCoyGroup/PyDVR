@@ -140,7 +140,7 @@ def kinetic_energy(grid=None, mass=1, hb=1, g=None, g_deriv=None, flavor='[-inf,
                 for j in range(i+1, len(momenta)):
                     if not (isinstance(g[i][j], (int, float, np.integer, np.floating)) and g[i][j] == 0):
                         # evaluate g over the terms and average
-                        g_vals = np.reshape(g[i][i](flat_grid), grid.shape[:-1])
+                        g_vals = np.reshape(g[i][j](flat_grid), grid.shape[:-1])
 
                         # construct the basic momenta kronecker product
                         sub_momenta = [ # set up all the subtensors we'll need for this
@@ -152,21 +152,25 @@ def kinetic_energy(grid=None, mass=1, hb=1, g=None, g_deriv=None, flavor='[-inf,
                         # now we need to figure out where to multiply in the ij_vals
                         flat_rows, flat_cols, mom_prod_vals = sp.find(momentum_mat)
                         # we convert each row and column into its corresponding direct
-                        # product index since each is basically a flat index for a multdimensional
+                        # product index since each is basically a flat index for a multidimensional
                         # array
                         row_inds = np.unravel_index(flat_rows, tot_shape)
                         col_inds = np.unravel_index(flat_cols, tot_shape)
 
+                        # we do the swap of the row/column indices required by the mixed term
+                        swap_rows = row_inds[:i] + (col_inds[i],) + row_inds[i+1:]
+                        swap_cols = col_inds[:i] + (row_inds[i],) + col_inds[i+1:]
+
                         # and we pull the G matrix values for the corresponding i and j indices
-                        row_vals = g_vals[row_inds]
-                        col_vals = g_vals[col_inds]
+                        row_vals = g_vals[swap_rows]
+                        col_vals = g_vals[swap_cols]
 
                         # finally we take the average of the two and put them into a sparse matrix
                         # that can be multiplied by the base momentum matrix values
-                        avg_g_vals = 1/2*(row_vals + col_vals)
+                        sum_g_vals = (row_vals + col_vals)
                         coupling_term = sp.csr_matrix(
                             (
-                                avg_g_vals * mom_prod_vals,
+                                sum_g_vals * mom_prod_vals,
                                 (flat_rows, flat_cols)
                             ),
                             shape=momentum_mat.shape,
@@ -187,8 +191,11 @@ def wavefunctions(hamiltonian=None, num_wfns=10, diag_mode='sparse', **kw):
         hamiltonian = hamiltonian.toarray()
     if isinstance(hamiltonian, sp.spmatrix):
         import scipy.sparse.linalg as la
-        return la.eigsh(hamiltonian, num_wfns, which='SM')
+        res = la.eigsh(hamiltonian, num_wfns, which='SM')
+        return res
     else:
+        if isinstance(hamiltonian, np.matrix):
+            hamiltonian = np.asarray(hamiltonian)
         engs, wfns = np.linalg.eigh(hamiltonian)
         # print(engs[:num_wfns])
         return (engs[:num_wfns], wfns[:, :num_wfns])
