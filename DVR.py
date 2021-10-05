@@ -246,7 +246,7 @@ Currently all defaults are for 1D but the ND extension shouldn't be bad
                     if shape_dim == 2:
                         points = g[:, :-1]
                         vals = g[:, -1]
-                        return interp.griddata(points, vals, g2)
+                        return interp.griddata(points, vals, g2, method="cubic")  # interpolates as cubic spline
                     else:
                         # assuming regular structured grid
                         mesh = g.transpose(np.roll(np.arange(len(g.shape)), 1))

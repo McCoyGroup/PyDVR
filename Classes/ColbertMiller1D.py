@@ -50,8 +50,23 @@ def kinetic_energy_neginfinf(grid=None, mass=1, hb=1, **kw):
 
     return ke
 
-def real_momentum_neginfinf(grid=None, hb=1, **kw):
-    raise NotImplementedError("don't have an expression for the momentum on the [-inf, inf] range")
+def real_momentum_neginfinf(grid=None, mass=None, hb=1, **kw):
+    """Provides the real part of the momentum for the -inf, inf range"""
+
+    divs = len(grid)
+    dx = grid[1] - grid[0]
+    p = np.zeros((divs, divs))
+
+    col_rng = np.arange(1, divs + 1)
+    row_rng = np.arange(0, divs)
+    for i in range(1, divs):
+        col_inds = col_rng[i - 1:-1]
+        row_inds = row_rng[:-i]
+        val = (hb / dx) * ((-1) ** (i) / i)  # to test added -1 to front
+        p[row_inds, col_inds] = val
+        p[col_inds, row_inds] = -val
+
+    return p
 
 def grid_02pi(domain=None, divs=None, **kw):
     """
