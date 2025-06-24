@@ -1,4 +1,10 @@
-# PyDVR
+# NOTE: 6/23/2025
+
+**This package hasn't been maintained in many years, please use the DVR implementation available in [Psience](https://github.com/McCoyGroup/Psience/tree/master/Psience/DVR)**
+
+---
+
+### PyDVR
 A sample, class-based, python DVR implementation.
 
 This implementation also employs the use of the plotting utilities in McUtils and wavefunction class in Psience. 
